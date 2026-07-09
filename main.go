@@ -49,7 +49,7 @@ func main() {
 }
 
 func handleHome(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, `<html><body><a href="/login">Log in with NetActuate</a></body></html>`)
+	fmt.Fprintf(w, `<html><body><a href="/login">Clique para logar! </a></body></html>`)
 }
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
