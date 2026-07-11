@@ -69,6 +69,9 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
 		return
 	}
+	code_verifier := oauth2.GenerateVerifier()
+
+	// Parametro Secure ausente pois se trata de um tutorial. Habilitar em produção com TLS.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "state",
 		Value:    state,
@@ -85,14 +88,22 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(10 * time.Minute),
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "code_verifier",
+		Value:    code_verifier,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(10 * time.Minute),
+	})
 
-	http.Redirect(w, r, oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
+	http.Redirect(w, r, oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce), oauth2.S256ChallengeOption(code_verifier)), http.StatusFound)
 }
 
 func handleCallback(w http.ResponseWriter, r *http.Request) {
 	state, err := r.Cookie("state")
 	if err != nil {
-		log.Printf("Falha ao achar o cookie")
+		log.Printf("Falha ao achar o cookie state")
 		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
 		return
 	}
@@ -101,9 +112,14 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
 		return
 	}
-
+	code_verifier, err := r.Cookie("code_verifier")
+	if err != nil {
+		log.Printf("Falha ao achar o cookie verifier")
+		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		return
+	}
 	ctx := r.Context()
-	token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
+	token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"), oauth2.VerifierOption(code_verifier.Value))
 	if err != nil {
 		log.Printf("Falha na troca de token Exchange: %v", err)
 		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
@@ -147,7 +163,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	nonce, err := r.Cookie("nonce")
 	if err != nil {
-		log.Printf("Falha ao achar o cookie")
+		log.Printf("Falha ao achar o cookie nonce")
 		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
 		return
 	}
