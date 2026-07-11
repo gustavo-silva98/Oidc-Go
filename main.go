@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -43,13 +42,18 @@ func main() {
 	http.HandleFunc("/", handleHome)
 	http.HandleFunc("/login", handleLogin)
 	http.HandleFunc("/callback", handleCallback)
+	http.HandleFunc("/login-ok", handleLoginOk)
 
 	fmt.Println("Server running: http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func handleHome(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, `<html><body><a href="/login">Clique para logar! </a></body></html>`)
+	fmt.Fprintf(w, `<html><body><a href="/login"> Clique para logar! </a></body></html>`)
+}
+
+func handleLoginOk(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, `<html><body> Login Bem Sucedido! </body></html>`)
 }
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +75,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(1 * time.Hour),
+		Expires:  time.Now().Add(10 * time.Minute),
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "nonce",
@@ -79,7 +83,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(1 * time.Hour),
+		Expires:  time.Now().Add(10 * time.Minute),
 	})
 
 	http.Redirect(w, r, oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
@@ -154,9 +158,31 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, _ := json.MarshalIndent(claims, "", " ")
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(response)
+	//response, _ := json.MarshalIndent(claims, "", " ")
+	//w.Header().Set("Content-Type", "application/json")
+	//w.Write(response)
+
+	// Invalidando cookie de state e nonce
+	http.SetCookie(w, &http.Cookie{
+		Name:     "state",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(10 * time.Minute),
+		MaxAge:   -1, // Parametro <0 significa deleção de cookie
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "nonce",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(10 * time.Minute),
+		MaxAge:   -1, // Parametro <0 significa deleção de cookie
+	})
+	http.Redirect(w, r, "/login-ok", http.StatusFound)
+
 }
 
 func createRandomString(n int) (string, error) {
