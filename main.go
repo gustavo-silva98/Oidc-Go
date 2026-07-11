@@ -69,7 +69,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
 		return
 	}
-	code_verifier := oauth2.GenerateVerifier()
+	code_verifier := oauth2.GenerateVerifier() // Criação de codigo PKCE
 
 	// Parametro Secure ausente pois se trata de um tutorial. Habilitar em produção com TLS.
 	http.SetCookie(w, &http.Cookie{
@@ -197,6 +197,16 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(10 * time.Minute),
 		MaxAge:   -1, // Parametro <0 significa deleção de cookie
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "code_verifier",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(10 * time.Minute),
+		MaxAge:   -1, // Parametro <0 significa deleção de cookie
+	})
+
 	http.Redirect(w, r, "/login-ok", http.StatusFound)
 
 }
