@@ -183,7 +183,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	log.Println("STEP 5: Nonce value has been succeed!")
 
 	response, _ := json.MarshalIndent(claims, "", " ")
-	//w.Header().Set("Content-Type", "application/json")
+
 	log.Println("STEP 5: ID_TOKEN claims below. Use this to build your session management")
 	log.Println(string(response))
 
