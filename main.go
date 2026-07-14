@@ -61,13 +61,13 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	state, err := createRandomString(32)
 	if err != nil {
 		log.Printf("Failed to generate State: %v", err)
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 	nonce, err := createRandomString(32)
 	if err != nil {
 		log.Printf("Failed to generate Nonce: %v", err)
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 	codeVerifier := oauth2.GenerateVerifier() // Generate PKCE Code
@@ -109,26 +109,26 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	state, err := r.Cookie("state")
 	if err != nil {
 		log.Printf("Failed to extract state value from cookie")
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 	nonce, err := r.Cookie("nonce")
 	if err != nil {
 		log.Printf("Falha ao achar o cookie nonce")
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 	code_verifier, err := r.Cookie("codeVerifier")
 	if err != nil {
 		log.Printf("Failed to extract PKCE code value from cookie")
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
-	log.Println("STEP 3: Cookie values from state, nonce and PKCE has been succeed!")
+	log.Println("STEP 3: Cookie values from state, nonce and PKCE has been extracted!")
 
 	if r.URL.Query().Get("state") != state.Value {
 		log.Printf("Failed to validate State Value. Val. Exp: %v - Val. Received: %v", state, r.URL.Query().Get("state"))
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 	log.Println("STEP 3: State validation has been succeed!")
@@ -137,7 +137,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"), oauth2.VerifierOption(code_verifier.Value))
 	if err != nil {
 		log.Printf("Failed to perform token Exchange: %v", err)
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 	log.Println("STEP 4: Exchange code for token has been succeed!")
@@ -146,14 +146,14 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok {
 		log.Print("Id_token is missing in token received")
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 
 	idtoken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		log.Printf("Fail on Id_Token verification: %v", err)
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 	log.Println("STEP 5: ID_Token verification by oidc package (signature, issuer, aud) has been succeed!")
@@ -171,13 +171,13 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	if err := idtoken.Claims(&claims); err != nil {
 		log.Printf("Error parsing id_token claims: %v", err)
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 
 	if nonce.Value != claims.Nonce {
 		log.Printf("Failed to validate Nonce. Val. Exp: %v - Val. Received: %v", nonce.Value, claims.Nonce)
-		http.Error(w, "Falha na autenticação", http.StatusInternalServerError)
+		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
 	log.Println("STEP 5: Nonce value has been succeed!")
