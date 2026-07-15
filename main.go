@@ -118,7 +118,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
 		return
 	}
-	code_verifier, err := r.Cookie("codeVerifier")
+	codeVerifier, err := r.Cookie("codeVerifier")
 	if err != nil {
 		log.Printf("Failed to extract PKCE code value from cookie")
 		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
@@ -134,7 +134,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	log.Println("STEP 3: State validation has been succeed!")
 
 	ctx := r.Context()
-	token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"), oauth2.VerifierOption(code_verifier.Value))
+	token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"), oauth2.VerifierOption(codeVerifier.Value))
 	if err != nil {
 		log.Printf("Failed to perform token Exchange: %v", err)
 		http.Error(w, "Failed to authenticate user", http.StatusInternalServerError)
@@ -184,7 +184,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	response, _ := json.MarshalIndent(claims, "", " ")
 
-	log.Println("STEP 5: ID_TOKEN claims below. Use this to build your session management")
+	log.Println("STEP 6: ID_TOKEN claims below. Use this to build your session management")
 	log.Println(string(response))
 
 	// Cookie invalidations
@@ -212,8 +212,8 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1, // MaxAge <0 means that the cookie will be deleted
 	})
-	log.Println("STEP 5: Cookies PKCE code, nonce and state deleted from the browser.")
-	log.Println("STEP 5: Redirecting user to happy path. /login-ok route.")
+	log.Println("STEP 6: Cookies PKCE code, nonce and state deleted from the browser.")
+	log.Println("STEP 6: Redirecting user to happy path. /login-ok route.")
 	http.Redirect(w, r, "/login-ok", http.StatusFound)
 
 }
